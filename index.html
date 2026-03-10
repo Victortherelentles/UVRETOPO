@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UVRETOPO Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>UVRETOPO Prototype</h1>
+    <p>Interactive high/low model previews with mock quad-retopo, topology, and UV layout inspection.</p>
+  </header>
+
+  <main class="layout">
+    <aside class="panel controls">
+      <section>
+        <h2>1) Upload Model</h2>
+        <div id="dropzone" class="dropzone" tabindex="0" aria-label="Drag and drop area">
+          <p><strong>Drag & drop OBJ/GLB here</strong></p>
+          <p>or</p>
+          <label class="file-btn">
+            Choose File
+            <input id="fileInput" type="file" accept=".obj,.glb" />
+          </label>
+          <small id="fileName">No file selected.</small>
+        </div>
+      </section>
+
+      <section>
+        <h2>2) Retopo Settings</h2>
+        <label>
+          Target Polycount
+          <input id="targetPoly" type="number" min="100" step="100" value="12000" />
+        </label>
+
+        <label class="checkbox-row">
+          <input id="quadRetopo" type="checkbox" checked />
+          Quad Retopology (mock)
+        </label>
+
+        <label class="checkbox-row">
+          <input id="genUv" type="checkbox" checked />
+          Generate UVs (if missing)
+        </label>
+
+        <label class="checkbox-row">
+          <input id="bakeTextures" type="checkbox" checked />
+          Bake + Pack Textures (mock)
+        </label>
+
+        <button id="processBtn" class="primary">Run Mock Retopology</button>
+      </section>
+
+      <section>
+        <h2>3) Export</h2>
+        <div class="export-actions">
+          <button id="exportMeshBtn" disabled>Export Low Poly Mesh</button>
+          <button id="exportMapsBtn" disabled>Export Baked Maps</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Status</h2>
+        <p id="statusText">Waiting for model upload.</p>
+        <div class="progress"><div id="progressBar"></div></div>
+      </section>
+    </aside>
+
+    <section class="preview-wrap">
+      <article class="panel preview-panel">
+        <h3>High Poly Preview (hover to spin)</h3>
+        <canvas id="highCanvas" width="640" height="420"></canvas>
+        <p class="meta" id="highMeta">Triangles: —</p>
+      </article>
+
+      <article class="panel preview-panel">
+        <h3>Low Poly Preview (hover to spin)</h3>
+        <canvas id="lowCanvas" width="640" height="320"></canvas>
+        <div class="subviews">
+          <div class="subview">
+            <h4>Topology View (wireframe / quad target)</h4>
+            <canvas id="topologyCanvas" width="640" height="180"></canvas>
+          </div>
+          <div class="subview">
+            <h4>UV Layout View (packed / baked target)</h4>
+            <canvas id="uvCanvas" width="640" height="180"></canvas>
+          </div>
+        </div>
+        <p class="meta" id="lowMeta">Triangles: —</p>
+      </article>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
