@@ -1,26 +1,28 @@
-# UVRETOPO Web App
+# UVRETOPO Static Prototype
 
-A browser-first pipeline for turning high-poly glTF assets into low-poly, game-ready models.
+A **dependency-free** front-end prototype that runs by opening `index.html` directly in your browser.
 
-## What it does
+## Features
 
-- Uploads a high-poly `.glb` or `.gltf` model from the browser.
-- Runs server-side geometry simplification (auto-retopology/decimation) to produce a low-poly output.
-- Preserves and repacks source textures/materials into the optimized asset.
-- Displays split-screen real-time previews (original vs optimized) with orbit controls.
-- Generates a direct browser download link for the optimized model.
+- Drag-and-drop upload area for `.obj` and `.glb` files.
+- Split-screen high-poly vs low-poly preview panes.
+- Settings panel for:
+  - target polycount
+  - quad retopo
+  - UV generation
+  - texture baking
+- Export buttons for:
+  - low poly mesh (mock file)
+  - baked maps (mock file)
+- Mock/in-browser processing flow with progress bar and placeholder preview updates.
 
-## Run locally
+## Run
 
-```bash
-npm install
-npm run dev
-```
-
-Then open `http://localhost:3000`.
+1. Open `index.html` in any modern browser.
+2. Drop an `.obj` or `.glb` into the upload area.
+3. Configure settings and click **Run Mock Retopology**.
+4. Export mock outputs with the export buttons.
 
 ## Notes
 
-- Current upload support is `glTF/GLB` only.
-- Retopology here is automatic simplification/decimation tuned for game optimization.
-- Texture transfer uses source material/texture retention through the glTF pipeline (best for assets with already-valid UVs).
+This is intentionally a front-end-only prototype. Real retopology, UV unwrapping, and texture baking are represented with placeholder logic for now.
