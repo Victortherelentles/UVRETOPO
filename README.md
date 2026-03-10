@@ -32,6 +32,25 @@ A dependency-free prototype (no npm) for visualizing a high-poly to low-poly wor
    ```
    then open `http://localhost:4173`.
 
+## Deploy (GitHub Pages)
+
+This repo includes an automatic deployment workflow at `.github/workflows/deploy-pages.yml`.
+
+1. Push your branch (`work` or `main`) to GitHub.
+2. In GitHub repo settings, open **Settings → Pages**.
+3. Set **Build and deployment → Source** to **GitHub Actions**.
+4. Go to the **Actions** tab and wait for **Deploy static site to GitHub Pages** to finish.
+5. Open your site URL:
+   `https://<your-github-username>.github.io/<repo-name>/`
+
+## Troubleshooting (if link is missing or site won't open)
+
+- Confirm the workflow run is green in **Actions**.
+- In **Settings → Pages**, make sure Source is **GitHub Actions** (not branch deploy).
+- Ensure the repo is public (or Pages is enabled for your private repo plan).
+- Hard-refresh browser or use an incognito tab after deployment.
+- Wait 1–3 minutes (sometimes up to 10 minutes) after a successful deploy.
+
 ## Notes
 
 - This is still a **prototype**: retopology, quad reconstruction, UV packing, and baking are mock approximations for UX preview.
