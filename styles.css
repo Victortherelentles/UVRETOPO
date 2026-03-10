@@ -8,11 +8,9 @@
   --text: #eaf2ff;
   --muted: #b8c8e8;
   --accent: #8fd9ff;
-  --accent-2: #a7ffd8;
 }
 
 * { box-sizing: border-box; }
-
 html, body { min-height: 100%; }
 
 body {
@@ -34,9 +32,8 @@ body::before {
   mix-blend-mode: screen;
 }
 
-.topbar,
-.layout {
-  width: min(1220px, 94vw);
+.topbar, .layout {
+  width: min(1260px, 94vw);
   margin-inline: auto;
 }
 
@@ -49,19 +46,10 @@ body::before {
   border: 1px solid var(--stroke);
   box-shadow: 0 14px 40px rgba(2, 10, 24, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
-.topbar h1 {
-  margin: 0;
-  font-size: clamp(1.35rem, 2.5vw, 2rem);
-  letter-spacing: 0.01em;
-}
-
-.topbar p {
-  margin: .35rem 0 0;
-  color: var(--muted);
-}
+.topbar h1 { margin: 0; font-size: clamp(1.35rem, 2.5vw, 2rem); }
+.topbar p { margin: .35rem 0 0; color: var(--muted); }
 
 .layout {
   margin-bottom: 1.2rem;
@@ -75,20 +63,11 @@ body::before {
   border: 1px solid var(--stroke-soft);
   border-radius: 20px;
   padding: 1rem;
-  box-shadow:
-    0 20px 42px rgba(0, 8, 24, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.24),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 42px rgba(0, 8, 24, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.24);
   backdrop-filter: blur(14px) saturate(130%);
-  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
-.controls {
-  display: grid;
-  gap: .9rem;
-  align-content: start;
-}
-
+.controls { display: grid; gap: .9rem; align-content: start; }
 .controls section {
   padding: .9rem;
   border-radius: 14px;
@@ -96,12 +75,10 @@ body::before {
   border: 1px solid rgba(190, 215, 255, 0.14);
 }
 
-.controls h2,
-.preview-panel h3 {
+.controls h2, .preview-panel h3 {
   margin: 0 0 .68rem;
   font-size: .98rem;
   font-weight: 650;
-  color: #f2f7ff;
 }
 
 .dropzone {
@@ -110,18 +87,13 @@ body::before {
   text-align: center;
   padding: 1.1rem .8rem;
   background: rgba(130, 176, 255, 0.06);
-  transition: border-color .18s ease, background .18s ease, transform .18s ease;
+  transition: .18s ease;
 }
-
 .dropzone.dragover,
 .dropzone:hover {
   border-color: var(--accent);
   background: rgba(144, 220, 255, 0.12);
-  transform: translateY(-1px);
 }
-
-.dropzone p { margin: .2rem 0; }
-
 .file-btn {
   display: inline-flex;
   align-items: center;
@@ -134,21 +106,10 @@ body::before {
   margin: .5rem 0 .4rem;
   font-weight: 600;
 }
-
 .file-btn input { display: none; }
+#fileName { color: var(--muted); display: block; }
 
-#fileName {
-  color: var(--muted);
-  display: block;
-}
-
-label {
-  display: block;
-  margin-bottom: .66rem;
-  color: #d9e7ff;
-  font-size: .93rem;
-}
-
+label { display: block; margin-bottom: .66rem; font-size: .93rem; }
 input[type="number"] {
   width: 100%;
   margin-top: .3rem;
@@ -160,23 +121,8 @@ input[type="number"] {
   outline: none;
 }
 
-input[type="number"]:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(130, 214, 255, 0.2);
-}
-
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: .56rem;
-  padding: .25rem 0;
-}
-
-.checkbox-row input[type="checkbox"] {
-  accent-color: #8bd6ff;
-  inline-size: 1rem;
-  block-size: 1rem;
-}
+.checkbox-row { display: flex; align-items: center; gap: .56rem; padding: .25rem 0; }
+.checkbox-row input[type="checkbox"] { accent-color: #8bd6ff; }
 
 button {
   width: 100%;
@@ -187,35 +133,11 @@ button {
   color: var(--text);
   font-weight: 650;
   cursor: pointer;
-  transition: transform .15s ease, background .2s ease, box-shadow .2s ease;
 }
-
-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  background: rgba(136, 185, 255, 0.23);
-}
-
-button:active:not(:disabled) { transform: translateY(0); }
-
-button:disabled {
-  opacity: .48;
-  cursor: not-allowed;
-}
-
-.primary {
-  background: linear-gradient(90deg, rgba(126, 212, 255, 0.36), rgba(167, 255, 215, 0.33));
-  box-shadow: 0 10px 24px rgba(109, 199, 255, 0.2);
-}
-
-.export-actions {
-  display: grid;
-  gap: .6rem;
-}
-
-#statusText {
-  margin: .2rem 0 .6rem;
-  color: #d2e4ff;
-}
+button:hover:not(:disabled) { background: rgba(136, 185, 255, 0.23); }
+button:disabled { opacity: .48; cursor: not-allowed; }
+.primary { background: linear-gradient(90deg, rgba(126, 212, 255, 0.36), rgba(167, 255, 215, 0.33)); }
+.export-actions { display: grid; gap: .6rem; }
 
 .progress {
   height: 11px;
@@ -224,13 +146,11 @@ button:disabled {
   background: rgba(8, 14, 27, 0.52);
   overflow: hidden;
 }
-
 #progressBar {
   height: 100%;
   width: 0%;
   transition: width .2s linear;
   background: linear-gradient(90deg, rgba(137, 201, 255, 0.95), rgba(166, 255, 216, 0.95));
-  box-shadow: 0 0 16px rgba(132, 211, 255, 0.55);
 }
 
 .preview-wrap {
@@ -238,15 +158,16 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
-
-.preview-panel {
-  display: flex;
-  flex-direction: column;
+.preview-panel { display: flex; flex-direction: column; gap: .5rem; }
+.preview-panel canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(173, 208, 255, 0.3);
+  background: rgba(7, 12, 24, 0.62);
 }
-
 .preview-panel h3 {
   display: inline-flex;
-  align-items: center;
   width: fit-content;
   padding: .35rem .72rem;
   border-radius: 999px;
@@ -254,22 +175,33 @@ button:disabled {
   border: 1px solid rgba(189, 221, 255, 0.24);
 }
 
-.preview-panel canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(173, 208, 255, 0.3);
-  background: rgba(7, 12, 24, 0.62);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+.subviews {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: .5rem;
+}
+
+.subview {
+  padding: .5rem;
+  border: 1px solid rgba(189, 221, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(11, 19, 34, 0.5);
+}
+
+.subview h4 {
+  margin: 0 0 .4rem;
+  font-size: .8rem;
+  color: var(--muted);
+  font-weight: 560;
 }
 
 .meta {
   color: var(--muted);
-  margin: .6rem 0 0;
+  margin: .2rem 0 0;
   font-size: .9rem;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1020px) {
   .layout { grid-template-columns: 1fr; }
   .preview-wrap { grid-template-columns: 1fr; }
 }

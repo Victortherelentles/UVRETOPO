@@ -1,3 +1,8 @@
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
+import { OBJLoader } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/OBJLoader.js';
+
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('fileInput');
 const fileNameEl = document.getElementById('fileName');
@@ -6,9 +11,6 @@ const exportMeshBtn = document.getElementById('exportMeshBtn');
 const exportMapsBtn = document.getElementById('exportMapsBtn');
 const statusText = document.getElementById('statusText');
 const progressBar = document.getElementById('progressBar');
-
-const highCanvas = document.getElementById('highCanvas');
-const lowCanvas = document.getElementById('lowCanvas');
 const highMeta = document.getElementById('highMeta');
 const lowMeta = document.getElementById('lowMeta');
 
@@ -17,57 +19,287 @@ const quadRetopoInput = document.getElementById('quadRetopo');
 const genUvInput = document.getElementById('genUv');
 const bakeTexturesInput = document.getElementById('bakeTextures');
 
+const gltfLoader = new GLTFLoader();
+const objLoader = new OBJLoader();
+
 let selectedFile = null;
+let sourceModel = null;
+let lowModel = null;
 let sourceTriangles = 0;
 let optimizedTriangles = 0;
 let processingDone = false;
 
-function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+function createViewer(canvas, wireframe = false) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(52, canvas.width / canvas.height, 0.01, 1000);
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-function drawMockMesh(canvas, density, tint) {
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
+  const hemi = new THREE.HemisphereLight(0xd8eeff, 0x24304b, 1.1);
+  const dir = new THREE.DirectionalLight(0xffffff, 1.25);
+  dir.position.set(4, 5, 4);
+  scene.add(hemi, dir);
 
-  ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#081126';
-  ctx.fillRect(0, 0, w, h);
+  const controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.autoRotate = false;
+  controls.autoRotateSpeed = 1.8;
 
-  const grad = ctx.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, '#162850');
-  grad.addColorStop(1, '#0a1938');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, w, h);
+  canvas.addEventListener('pointerenter', () => { controls.autoRotate = true; });
+  canvas.addEventListener('pointerleave', () => { controls.autoRotate = false; });
 
-  ctx.globalAlpha = 0.85;
-  ctx.strokeStyle = tint;
-  ctx.lineWidth = 1;
+  const grid = new THREE.GridHelper(10, 20, 0x9bbbf4, 0x2e466d);
+  grid.material.opacity = 0.25;
+  grid.material.transparent = true;
+  scene.add(grid);
 
-  for (let i = 0; i < density; i += 1) {
-    const x1 = randomInt(20, w - 20);
-    const y1 = randomInt(20, h - 20);
-    const x2 = x1 + randomInt(-40, 40);
-    const y2 = y1 + randomInt(-40, 40);
-    const x3 = x1 + randomInt(-40, 40);
-    const y3 = y1 + randomInt(-40, 40);
+  let model = null;
 
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.lineTo(x3, y3);
-    ctx.closePath();
-    ctx.stroke();
+  function setModel(obj) {
+    if (model) {
+      scene.remove(model);
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.geometry?.dispose();
+          if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+          else child.material?.dispose();
+        }
+      });
+    }
+
+    if (!obj) {
+      model = null;
+      return;
+    }
+
+    model = obj;
+
+    model.traverse((child) => {
+      if (!child.isMesh) return;
+      child.castShadow = false;
+      child.receiveShadow = false;
+      child.material = wireframe
+        ? new THREE.MeshBasicMaterial({ color: 0xa0ffe1, wireframe: true })
+        : new THREE.MeshStandardMaterial({
+            color: 0xc8dcff,
+            metalness: 0.08,
+            roughness: 0.62,
+            transparent: true,
+            opacity: 0.95
+          });
+    });
+
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3()).length() || 1;
+    model.position.sub(center);
+
+    camera.near = Math.max(0.01, size / 120);
+    camera.far = Math.max(100, size * 100);
+    camera.position.set(size * 0.9, size * 0.6, size * 0.9);
+    camera.lookAt(0, 0, 0);
+    camera.updateProjectionMatrix();
+    controls.update();
+
+    scene.add(model);
   }
 
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = '#dce8ff';
-  ctx.font = '16px sans-serif';
-  ctx.fillText('Mock viewport (prototype)', 18, h - 16);
+  function resize() {
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (canvas.width !== width || canvas.height !== height) {
+      renderer.setSize(width, height, false);
+      camera.aspect = width / Math.max(1, height);
+      camera.updateProjectionMatrix();
+    }
+  }
+
+  function render() {
+    resize();
+    controls.update();
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+  render();
+
+  return { setModel };
 }
 
-function updateFile(file) {
+const highViewer = createViewer(document.getElementById('highCanvas'));
+const lowViewer = createViewer(document.getElementById('lowCanvas'));
+const topologyViewer = createViewer(document.getElementById('topologyCanvas'), true);
+const uvCanvas = document.getElementById('uvCanvas');
+
+function countTriangles(object3d) {
+  let triangles = 0;
+  object3d.traverse((child) => {
+    if (!child.isMesh || !child.geometry) return;
+    const geom = child.geometry;
+    if (geom.index) triangles += Math.floor(geom.index.count / 3);
+    else triangles += Math.floor(geom.attributes.position.count / 3);
+  });
+  return triangles;
+}
+
+function ensureUVs(geometry) {
+  if (geometry.getAttribute('uv')) return;
+  geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const pos = geometry.getAttribute('position');
+  const uv = new Float32Array(pos.count * 2);
+
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    uv[i * 2] = size.x ? (x - box.min.x) / size.x : 0;
+    uv[i * 2 + 1] = size.z ? (z - box.min.z) / size.z : 0;
+  }
+
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+}
+
+function buildLowPolyModel(source, targetTriangles) {
+  const ratio = Math.max(0.05, Math.min(1, targetTriangles / Math.max(sourceTriangles, 1)));
+  const cloned = source.clone(true);
+
+  cloned.traverse((child) => {
+    if (!child.isMesh || !child.geometry) return;
+
+    let g = child.geometry.clone().toNonIndexed();
+    const pos = g.getAttribute('position');
+    const normals = g.getAttribute('normal');
+    const uv = g.getAttribute('uv');
+
+    const triCount = Math.floor(pos.count / 3);
+    const keepTri = Math.max(12, Math.floor(triCount * ratio));
+
+    const newPos = new Float32Array(keepTri * 9);
+    const newNormals = normals ? new Float32Array(keepTri * 9) : null;
+    const newUv = uv ? new Float32Array(keepTri * 6) : null;
+
+    for (let t = 0; t < keepTri; t += 1) {
+      const srcTri = Math.floor((t / keepTri) * triCount);
+      for (let v = 0; v < 3; v += 1) {
+        const srcIndex = srcTri * 3 + v;
+        const dstPos = t * 9 + v * 3;
+        newPos[dstPos] = pos.getX(srcIndex);
+        newPos[dstPos + 1] = pos.getY(srcIndex);
+        newPos[dstPos + 2] = pos.getZ(srcIndex);
+
+        if (newNormals) {
+          newNormals[dstPos] = normals.getX(srcIndex);
+          newNormals[dstPos + 1] = normals.getY(srcIndex);
+          newNormals[dstPos + 2] = normals.getZ(srcIndex);
+        }
+
+        if (newUv) {
+          const dstUv = t * 6 + v * 2;
+          newUv[dstUv] = uv.getX(srcIndex);
+          newUv[dstUv + 1] = uv.getY(srcIndex);
+        }
+      }
+    }
+
+    const low = new THREE.BufferGeometry();
+    low.setAttribute('position', new THREE.BufferAttribute(newPos, 3));
+    if (newNormals) low.setAttribute('normal', new THREE.BufferAttribute(newNormals, 3));
+    if (newUv) low.setAttribute('uv', new THREE.BufferAttribute(newUv, 2));
+    ensureUVs(low);
+    low.computeVertexNormals();
+
+    child.geometry.dispose();
+    child.geometry = low;
+  });
+
+  return cloned;
+}
+
+function drawUVLayout(object3d) {
+  const ctx = uvCanvas.getContext('2d');
+  const w = uvCanvas.width;
+  const h = uvCanvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#071022';
+  ctx.fillRect(0, 0, w, h);
+
+  const gridSize = 12;
+  ctx.strokeStyle = 'rgba(170,200,255,0.12)';
+  for (let i = 0; i <= gridSize; i += 1) {
+    const x = (w / gridSize) * i;
+    const y = (h / gridSize) * i;
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  const rects = [
+    [0.02, 0.02, 0.48, 0.48],
+    [0.5, 0.02, 0.48, 0.30],
+    [0.5, 0.34, 0.24, 0.32],
+    [0.74, 0.34, 0.24, 0.32],
+    [0.5, 0.68, 0.48, 0.30]
+  ];
+
+  let island = 0;
+  object3d.traverse((child) => {
+    if (!child.isMesh || !child.geometry) return;
+    const geom = child.geometry;
+    ensureUVs(geom);
+    const uv = geom.getAttribute('uv');
+    if (!uv) return;
+
+    const pack = rects[island % rects.length];
+    island += 1;
+
+    ctx.strokeStyle = 'rgba(147, 231, 255, 0.92)';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < uv.count; i += 3) {
+      const tri = [];
+      for (let j = 0; j < 3; j += 1) {
+        const u = uv.getX(i + j);
+        const v = uv.getY(i + j);
+        const packedU = pack[0] + Math.min(1, Math.max(0, u)) * pack[2];
+        const packedV = pack[1] + Math.min(1, Math.max(0, v)) * pack[3];
+        tri.push([packedU * w, (1 - packedV) * h]);
+      }
+      ctx.beginPath();
+      ctx.moveTo(tri[0][0], tri[0][1]);
+      ctx.lineTo(tri[1][0], tri[1][1]);
+      ctx.lineTo(tri[2][0], tri[2][1]);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  });
+
+  ctx.fillStyle = 'rgba(217,234,255,0.88)';
+  ctx.font = '13px sans-serif';
+  ctx.fillText('Mock packed UV islands for bake target (non-scrambled preview)', 10, 18);
+}
+
+async function loadModel(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const objectURL = URL.createObjectURL(file);
+  try {
+    if (ext === 'glb') {
+      const gltf = await gltfLoader.loadAsync(objectURL);
+      return gltf.scene;
+    }
+
+    if (ext === 'obj') {
+      return await objLoader.loadAsync(objectURL);
+    }
+
+    throw new Error('Only .OBJ and .GLB are supported right now.');
+  } finally {
+    URL.revokeObjectURL(objectURL);
+  }
+}
+
+async function updateFile(file) {
   selectedFile = file;
   processingDone = false;
   exportMeshBtn.disabled = true;
@@ -89,21 +321,26 @@ function updateFile(file) {
   }
 
   fileNameEl.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-  statusText.textContent = 'Model loaded. You can run mock retopology.';
+  statusText.textContent = 'Loading model...';
 
-  sourceTriangles = randomInt(120000, 1200000);
-  optimizedTriangles = 0;
+  sourceModel = await loadModel(file);
+  sourceTriangles = countTriangles(sourceModel);
+  highViewer.setModel(sourceModel.clone(true));
 
-  drawMockMesh(highCanvas, 900, '#7db4ff');
-  drawMockMesh(lowCanvas, 90, '#76f2ad');
+  lowModel = null;
+  topologyViewer.setModel(null);
+  drawUVLayout(new THREE.Group());
 
-  highMeta.textContent = `Triangles: ${sourceTriangles.toLocaleString()} (estimated)`;
+  highMeta.textContent = `Triangles: ${sourceTriangles.toLocaleString()}`;
   lowMeta.textContent = 'Triangles: —';
+  statusText.textContent = 'Model loaded. Hover over preview to spin. Ready for mock retopo.';
 }
 
 function handleFiles(files) {
   if (!files?.length) return;
-  updateFile(files[0]);
+  updateFile(files[0]).catch((err) => {
+    statusText.textContent = err.message;
+  });
 }
 
 fileInput.addEventListener('change', (event) => handleFiles(event.target.files));
@@ -125,31 +362,29 @@ fileInput.addEventListener('change', (event) => handleFiles(event.target.files))
 dropzone.addEventListener('drop', (event) => handleFiles(event.dataTransfer.files));
 
 processBtn.addEventListener('click', async () => {
-  if (!selectedFile) {
+  if (!sourceModel) {
     statusText.textContent = 'Upload a model first.';
     return;
   }
 
   const target = Math.max(100, Number(targetPolyInput.value) || 12000);
-  statusText.textContent = 'Mock processing started...';
+  statusText.textContent = 'Generating low-poly + quad topology + UV packing (mock)...';
   processBtn.disabled = true;
 
   for (let i = 0; i <= 100; i += 5) {
-    await new Promise((resolve) => setTimeout(resolve, 55));
+    await new Promise((resolve) => setTimeout(resolve, 35));
     progressBar.style.width = `${i}%`;
   }
 
-  optimizedTriangles = Math.min(sourceTriangles - 100, target);
-  const lowDensity = Math.max(45, Math.floor((optimizedTriangles / Math.max(sourceTriangles, 1)) * 900));
-  drawMockMesh(lowCanvas, lowDensity, '#76f2ad');
+  lowModel = buildLowPolyModel(sourceModel, target);
+  optimizedTriangles = countTriangles(lowModel);
 
-  lowMeta.textContent = `Triangles: ${optimizedTriangles.toLocaleString()} (target)`;
-  statusText.textContent = [
-    'Mock retopology complete.',
-    quadRetopoInput.checked ? 'Quads: ON' : 'Quads: OFF',
-    genUvInput.checked ? 'UV generation: ON' : 'UV generation: OFF',
-    bakeTexturesInput.checked ? 'Texture bake: ON' : 'Texture bake: OFF'
-  ].join(' ');
+  lowViewer.setModel(lowModel.clone(true));
+  topologyViewer.setModel(lowModel.clone(true));
+  drawUVLayout(lowModel);
+
+  lowMeta.textContent = `Triangles: ${optimizedTriangles.toLocaleString()} | Quads target: ${quadRetopoInput.checked ? 'ON' : 'OFF'} | UV packed: ${genUvInput.checked ? 'ON' : 'SOURCE'} | Bake: ${bakeTexturesInput.checked ? 'ON' : 'OFF'}`;
+  statusText.textContent = 'Done. Hover each viewport to spin. Topology and UV layout preview generated.';
 
   processingDone = true;
   processBtn.disabled = false;
@@ -172,13 +407,14 @@ function triggerDownload(filename, content, mime = 'text/plain') {
 exportMeshBtn.addEventListener('click', () => {
   if (!processingDone) return;
   const summary = [
-    'UVRETOPO Mock Export',
+    'UVRETOPO Mock Low-Poly Export',
     `Source file: ${selectedFile?.name || 'N/A'}`,
     `Source triangles: ${sourceTriangles}`,
-    `Target triangles: ${optimizedTriangles}`,
-    `Quad retopo: ${quadRetopoInput.checked}`,
-    `Generate UV: ${genUvInput.checked}`,
-    `Bake textures: ${bakeTexturesInput.checked}`
+    `Low triangles: ${optimizedTriangles}`,
+    `Quad retopo target: ${quadRetopoInput.checked}`,
+    `UV generation: ${genUvInput.checked}`,
+    `Texture baking: ${bakeTexturesInput.checked}`,
+    'Note: Prototype export is metadata only. Mesh export is mocked.'
   ].join('\n');
 
   triggerDownload('low-poly-mesh-mock.txt', summary);
@@ -189,11 +425,10 @@ exportMapsBtn.addEventListener('click', () => {
   const summary = [
     'UVRETOPO Mock Baked Maps',
     `Asset: ${selectedFile?.name || 'N/A'}`,
-    'Maps: albedo.png, normal.png, orm.png (placeholder)'
+    'Packed UV islands: generated for preview',
+    'Maps (placeholder): albedo.png, normal.png, roughness.png, ao.png'
   ].join('\n');
   triggerDownload('baked-maps-mock.txt', summary);
 });
 
-// Initial placeholders.
-drawMockMesh(highCanvas, 180, '#5c84d5');
-drawMockMesh(lowCanvas, 65, '#3fb989');
+drawUVLayout(new THREE.Group());
